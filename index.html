@@ -684,20 +684,45 @@
         button {
           font: inherit;
         }
-        /* Masked text rather than password fields, which password managers offer to save whatever autocomplete says. */
-        input {
-          -webkit-text-security: disc;
+        input:not([type="radio"]) {
+          min-width: 0;
+          width: 100%;
           border: var(--hair) solid var(--ink-3);
-          &:focus {
+          &:focus-visible {
             border-color: var(--hot);
-            outline: none;
           }
+        }
+        [data-provider="cloud"] input {
+          -webkit-text-security: disc;
+        }
+        fieldset {
+          display: grid;
+          gap: var(--gap);
+          margin: 0;
+          padding: 0;
+          border: 0;
+          min-width: 0;
+        }
+        fieldset[hidden] {
+          display: none;
+        }
+        .providers {
+          display: flex;
+          gap: calc(2 * var(--gap));
+        }
+        .providers label {
+          display: flex;
+          gap: var(--gap);
+        }
+        #connection-status {
+          color: var(--ink-2);
+          overflow-wrap: anywhere;
         }
         .actions {
           display: flex;
           justify-content: end;
           gap: var(--gap);
-          button[value="live"] {
+          button[type="submit"] {
             color: var(--bg);
             background: var(--hot);
             border: var(--hair) solid var(--hot);
@@ -869,7 +894,7 @@
     </template>
     <div id="cursor" aria-hidden="true"></div>
     <footer id="tray">
-      <button id="mode-toggle" type="button" aria-pressed="false" aria-label="flight mode">mode<b>sim</b></button>
+      <button id="mode-toggle" type="button" aria-pressed="false" aria-label="inference mode">mode<b>sim</b></button>
       <output id="status" aria-live="off"></output>
       <button id="sound-toggle" type="button" aria-pressed="true" aria-label="sound">♪<b>on</b></button>
       <a id="extra-link" href="extra/style-1.html">extra</a>
@@ -877,41 +902,54 @@
     <dialog id="live-keys" aria-labelledby="live-keys-title" aria-describedby="live-keys-note" closedby="closerequest">
       <form method="dialog" autocomplete="off">
         <h2 id="live-keys-title">launch</h2>
-        <p id="live-keys-note">Lift off from the simulator to call the real API with your own keys, kept in this browser's local storage.</p>
-        <label
-          >cerebras
-          <input
-            name="cerebras"
-            type="text"
-            required
-            autocomplete="off"
-            autocapitalize="off"
-            autocorrect="off"
-            spellcheck="false"
-            data-1p-ignore
-            data-lpignore="true"
-            data-bwignore
-            data-form-type="other"
-            autofocus
-        /></label>
-        <label
-          >gemini
-          <input
-            name="gemini"
-            type="text"
-            required
-            autocomplete="off"
-            autocapitalize="off"
-            autocorrect="off"
-            spellcheck="false"
-            data-1p-ignore
-            data-lpignore="true"
-            data-bwignore
-            data-form-type="other"
-        /></label>
+        <p id="live-keys-note">Select a local model server or cloud provider. Local settings stay in this browser.</p>
+        <fieldset class="providers">
+          <label><input type="radio" name="provider" value="local" checked /> local</label>
+          <label><input type="radio" name="provider" value="cloud" /> cloud</label>
+        </fieldset>
+        <fieldset data-provider="local">
+          <label>endpoint <input name="endpoint" type="url" required spellcheck="false" autocomplete="off" /></label>
+          <label>writer <input name="writer" type="text" list="local-models" required spellcheck="false" autocomplete="off" /></label>
+          <label>decision <input name="decision" type="text" list="local-models" required spellcheck="false" autocomplete="off" /></label>
+          <datalist id="local-models"></datalist>
+          <button type="button" id="discover-models">detect models</button>
+          <output id="connection-status" role="status" aria-live="polite"></output>
+        </fieldset>
+        <fieldset data-provider="cloud" hidden disabled>
+          <label
+            >cerebras
+            <input
+              name="cerebras"
+              type="text"
+              required
+              autocomplete="off"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+              data-1p-ignore
+              data-lpignore="true"
+              data-bwignore
+              data-form-type="other"
+          /></label>
+          <label
+            >gemini
+            <input
+              name="gemini"
+              type="text"
+              required
+              autocomplete="off"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+              data-1p-ignore
+              data-lpignore="true"
+              data-bwignore
+              data-form-type="other"
+          /></label>
+        </fieldset>
         <p class="actions">
           <button type="button" command="close" commandfor="live-keys">abort</button>
-          <button value="live">launch</button>
+          <button type="submit">launch</button>
         </p>
       </form>
     </dialog>

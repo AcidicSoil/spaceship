@@ -1,19 +1,17 @@
-import { createDecisions, storedGeminiKey, type Question } from "../llm/decisions.ts"
+import type { Question } from "../llm/decisions.ts"
+import { scoreDecisions } from "../llm/inference.ts"
 import type { RealizationSource } from "./realization.ts"
 
 const MODEL = "gemini-decision-1"
 
 export const liveRealization: RealizationSource = async function* ({ context, sentences, asked, control }, signal) {
-  const apiKey = storedGeminiKey()
-  if (!apiKey) throw new Error("save a Gemini API key on the decisions page first")
-
   const input = [
     ...(context ? [`STORY SO FAR\n${context}`] : []),
     `CANDIDATE SENTENCES\n${sentences.map((sentence, i) => `[${i + 1}] ${sentence}`).join("\n")}`,
     `CONTROL\n${control}`,
   ].join("\n\n")
   const questions = Object.fromEntries(asked.map((index) => [keyOf(index), questionAbout(index)]))
-  const { answers } = await createDecisions(apiKey, { model: MODEL, input, questions }, signal)
+  const { answers } = await scoreDecisions({ model: MODEL, input, questions }, signal)
 
   for (const index of asked) {
     const answer = answers[keyOf(index)]

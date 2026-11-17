@@ -1,4 +1,5 @@
-import { createDecisions, storedGeminiKey, type Question } from "../llm/decisions.ts"
+import type { Question } from "../llm/decisions.ts"
+import { scoreDecisions } from "../llm/inference.ts"
 import type { Focus, InfluenceSource } from "./influence.ts"
 
 const MODEL = "gemini-decision-1"
@@ -25,9 +26,6 @@ const QUESTIONS: Record<Focus["kind"], { instructions: string; levels: string[] 
 }
 
 export const liveInfluence: InfluenceSource = async function* (sentences, focus, signal) {
-  const apiKey = storedGeminiKey()
-  if (!apiKey) throw new Error("save a Gemini API key on the decisions page first")
-
   const { instructions, levels } = QUESTIONS[focus.kind]
   const input = `STORY SENTENCES\n${sentences.map((sentence, i) => `[${i + 1}] ${sentence}`).join("\n")}\n\n${focus.kind.toUpperCase()}\n${focus.text}`
   const questions = Object.fromEntries(
@@ -36,7 +34,7 @@ export const liveInfluence: InfluenceSource = async function* (sentences, focus,
       { type: "score", instructions: `How strongly does sentence [${i + 1}] ${instructions}?`, criteria: levels },
     ]),
   )
-  const { answers } = await createDecisions(apiKey, { model: MODEL, input, questions }, signal)
+  const { answers } = await scoreDecisions({ model: MODEL, input, questions }, signal)
 
   for (const index of sentences.keys()) {
     const answer = answers[keyOf(index)]

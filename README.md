@@ -54,3 +54,21 @@ If you build on this work, please cite it as:
   note         = {Demo: \url{https://chuanqisun.github.io/spaceship/}}
 }
 ```
+
+## Local models
+
+Run the Vite app with npm ci && npm run dev, then open mode → local.
+Enter an OpenAI-compatible loopback endpoint such as
+http://127.0.0.1:1234/v1 (LM Studio),
+http://127.0.0.1:11434/v1 (Ollama), or
+http://127.0.0.1:8080/v1 (llama.cpp).
+Select detect models, choose the writing and decision models, and launch.
+Local mode retains the steering controls and uses no cloud API keys.
+
+The model server must allow the browser origin via CORS. Chrome may ask for
+Loopback network permission when connecting from the hosted HTTPS demo.
+See [local inference design](docs/local-inference.md) for the architecture,
+decision-scoring contract, and verification commands.
+
+Run the focused local browser smoke test with node scripts/verify-local.mjs.
+It uses a loopback test model server and requires local Chrome.

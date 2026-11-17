@@ -1,6 +1,7 @@
 import { layoutNextLine, prepareWithSegments, type PreparedTextWithSegments } from "@chenglou/pretext"
 import "@fontsource-variable/jetbrains-mono/wght.css"
 import { $ } from "../dom.ts"
+import { currentMode } from "../llm/mode.ts"
 import { centeredAt, type Point } from "../point.ts"
 import { createAttentionKnobs } from "./attention-knobs.ts"
 import { caretAt, isAhead, pointAt, type Caret, type TextMetrics } from "./caret.ts"
@@ -64,7 +65,8 @@ await document.fonts.load(style.font)
 const measure = document.createElement("canvas").getContext("2d")!
 measure.font = style.font
 
-const isLive = new URLSearchParams(location.search).get("live") === "true"
+const mode = currentMode()
+const isLive = mode !== "sim"
 const stream = createTextStream(isLive ? liveSource : simulatedSource, render)
 const rail = createLeftRail(railElement)
 const connections = createConnections({ source: isLive ? liveInfluence : simulatedInfluence, onChange: refreshRail })
@@ -119,7 +121,7 @@ let didHold = false
 /** The previous drag point, for how fast the knob moves. */
 let lastDrag: { point: Point; at: number } | undefined
 
-bindModeToggle(modeToggle, $<HTMLDialogElement>("#live-keys"), isLive)
+bindModeToggle(modeToggle, $<HTMLDialogElement>("#live-keys"), mode)
 startSound()
 showSoundToggle()
 soundToggle.addEventListener("click", () => {

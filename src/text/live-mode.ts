@@ -1,36 +1,85 @@
 import { KEY_STORAGE as CEREBRAS_KEY_STORAGE } from "../llm/cerebras.ts"
 import { KEY_STORAGE as GEMINI_KEY_STORAGE } from "../llm/decisions.ts"
+import { createLocalSettings, DEFAULT_LOCAL_ENDPOINT, listLocalModels, saveLocalSettings, storedLocalSettings } from "../llm/local.ts"
+import type { InferenceMode } from "../llm/mode.ts"
 
-/** Each key's field in the dialog's form, by name, and where it is kept for reuse. */
 const KEY_FIELDS = { cerebras: CEREBRAS_KEY_STORAGE, gemini: GEMINI_KEY_STORAGE }
 
-/**
- * Sim plays simulated sources; flight calls the models. The sources are chosen when the page loads, so switching reloads it in the other mode.
- * Launching always asks for both API keys first, prefilled with the ones kept from last time; the dialog's submit button returns "live".
- */
-export function bindModeToggle(toggle: HTMLButtonElement, dialog: HTMLDialogElement, isLive: boolean) {
+/** The simulator, cloud models, and local models share the same steering UI. */
+export function bindModeToggle(toggle: HTMLButtonElement, dialog: HTMLDialogElement, mode: InferenceMode) {
   const form = dialog.querySelector("form")!
   const inputOf = (name: string) => form.elements.namedItem(name) as HTMLInputElement
-  toggle.setAttribute("aria-pressed", `${isLive}`)
-  toggle.querySelector("b")!.textContent = isLive ? "flight" : "sim"
+  const localFields = form.querySelector<HTMLFieldSetElement>('fieldset[data-provider="local"]')!
+  const cloudFields = form.querySelector<HTMLFieldSetElement>('fieldset[data-provider="cloud"]')!
+  const modelList = form.querySelector<HTMLDataListElement>("#local-models")!
+  const status = form.querySelector<HTMLOutputElement>("#connection-status")!
+  const selectedProvider = () => form.querySelector<HTMLInputElement>('input[name="provider"]:checked')!.value
+
+  toggle.setAttribute("aria-pressed", String(mode !== "sim"))
+  toggle.querySelector("b")!.textContent = mode === "cloud" ? "flight" : mode
 
   toggle.addEventListener("click", () => {
-    if (isLive) return reloadAs(false)
+    if (mode !== "sim") return reloadAs("sim")
     for (const [name, storageKey] of Object.entries(KEY_FIELDS)) inputOf(name).value = localStorage.getItem(storageKey) ?? ""
+    const settings = storedLocalSettings()
+    inputOf("endpoint").value = settings?.endpoint ?? DEFAULT_LOCAL_ENDPOINT
+    inputOf("writer").value = settings?.writer ?? ""
+    inputOf("decision").value = settings?.decision ?? ""
+    status.textContent = ""
+    selectProvider()
     dialog.showModal()
   })
-  dialog.addEventListener("close", () => {
-    const choice = dialog.returnValue
-    dialog.returnValue = ""
-    if (choice !== "live") return
-    for (const [name, storageKey] of Object.entries(KEY_FIELDS)) localStorage.setItem(storageKey, inputOf(name).value.trim())
-    reloadAs(true)
+
+  form.querySelectorAll<HTMLInputElement>('input[name="provider"]').forEach((radio) => radio.addEventListener("change", selectProvider))
+  form.querySelector<HTMLButtonElement>("#discover-models")!.addEventListener("click", discoverModels)
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault()
+    if (selectedProvider() === "cloud") {
+      for (const [name, storageKey] of Object.entries(KEY_FIELDS)) localStorage.setItem(storageKey, inputOf(name).value.trim())
+      reloadAs("cloud")
+      return
+    }
+    try {
+      const settings = createLocalSettings(inputOf("endpoint").value, inputOf("writer").value, inputOf("decision").value)
+      await listLocalModels(settings.endpoint)
+      saveLocalSettings(settings)
+      reloadAs("local")
+    } catch (error) {
+      status.textContent = error instanceof Error ? error.message : String(error)
+    }
   })
+
+  function selectProvider() {
+    const isLocal = selectedProvider() === "local"
+    localFields.hidden = !isLocal
+    localFields.disabled = !isLocal
+    cloudFields.hidden = isLocal
+    cloudFields.disabled = isLocal
+    status.textContent = ""
+  }
+
+  async function discoverModels() {
+    status.textContent = "Connecting to local model server…"
+    try {
+      const models = await listLocalModels(inputOf("endpoint").value)
+      modelList.replaceChildren(
+        ...models.map((id) => {
+          const option = document.createElement("option")
+          option.value = id
+          return option
+        }),
+      )
+      status.textContent = `Connected. ${models.length} models available; choose a writer and decision model.`
+    } catch (error) {
+      status.textContent = `Connection failed: ${error instanceof Error ? error.message : String(error)}. Check the server, CORS, and browser loopback permission.`
+    }
+  }
 }
 
-function reloadAs(isLive: boolean) {
+function reloadAs(mode: InferenceMode) {
   const url = new URL(location.href)
-  if (isLive) url.searchParams.set("live", "true")
-  else url.searchParams.delete("live")
+  if (mode === "sim") url.searchParams.delete("live")
+  else url.searchParams.set("live", mode === "cloud" ? "true" : "local")
   location.assign(url)
 }
