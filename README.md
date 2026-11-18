@@ -55,20 +55,17 @@ If you build on this work, please cite it as:
 }
 ```
 
-## Local models
+## Local writing and decision models
 
-Run the Vite app with npm ci && npm run dev, then open mode → local.
-Enter an OpenAI-compatible loopback endpoint such as
-http://127.0.0.1:1234/v1 (LM Studio),
-http://127.0.0.1:11434/v1 (Ollama), or
-http://127.0.0.1:8080/v1 (llama.cpp).
-Select detect models, choose the writing and decision models, and launch.
-Local mode retains the steering controls and uses no cloud API keys.
+Run the app using `npm ci && npm run dev`. In **mode → local**, configure two independent backends:
 
-The model server must allow the browser origin via CORS. Chrome may ask for
-Loopback network permission when connecting from the hosted HTTPS demo.
-See [local inference design](docs/local-inference.md) for the architecture,
-decision-scoring contract, and verification commands.
+- **Writing:** an OpenAI-compatible stream endpoint, such as Ollama at `http://127.0.0.1:11434/v1`.
+- **Decisions:** a native System One endpoint implementing `POST /v1/systemone`. Run `jev-droid models` to discover installed decision profiles and their configured addresses, then `jev-droid --model default serve` to launch the local Laya decision model under managed idle unloading.
 
-Run the focused local browser smoke test with node scripts/verify-local.mjs.
-It uses a loopback test model server and requires local Chrome.
+Use each **detect** control to select a model, then **launch**. Spaceship probes `noul`, `choice`, and `score` natively before starting. Probabilities, confidence, and fractional scores come from the decision model itself; there is no chat-based JSON scoring fallback.
+
+The model servers must be reachable from the browser, with CORS permitting its origin. A public HTTPS page may also need browser **Loopback network** permission.
+
+See [local decision-model architecture and verification](docs/local-inference.md).
+
+Verify with `npm run build` and `node scripts/verify-local.mjs` (Chromium + loopback HTTP fixture). With a native System One server running, set `SPACESHIP_NATIVE_ENDPOINT=http://127.0.0.1:8774/v1` to run the optional real-model browser check. Use your configured endpoint from `jev-droid models` rather than assuming this example port.

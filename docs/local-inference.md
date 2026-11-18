@@ -1,61 +1,56 @@
-# Local inference integration
+# Local inference and native decision models
 
-## User journey
+## Workflow
 
-1. Start the app in **SIM**.
-2. Select **mode → local** and enter an OpenAI-compatible loopback URL.
-3. Select **detect models**, then choose generation and decision models.
-4. Select **launch**. The app verifies discovery, saves the local selection, and switches to **LOCAL**.
-5. Use the unchanged main knob, attention boxes, future knobs, and backward scrubbing.
-6. Select **mode** to return to SIM. Cloud mode remains available.
+1. Start a local OpenAI-compatible **writing model** using Ollama or llama.cpp.
+2. Run `jev-droid models` to find a local System One decision profile and its endpoint. For the installed default Laya profile, `jev-droid --model default serve` starts the native runtime with its managed idle-unload policy.
+3. Start Spaceship with `npm ci && npm run dev`. Open **mode → local**.
+4. Enter the writing endpoint and model, and separately enter the **decision endpoint** and decision model. Use each **detect** button to list models.
+5. Select **launch**. Spaceship sends a real mixed `noul` / `choice` / `score` capability probe to `/v1/systemone` before entering LOCAL mode.
+6. Use the existing attention, future-knob, and regeneration controls. Returning to SIM does not shut down externally managed servers.
 
-## Design decision
+The app does not own model processes. Keep lifecycle management with `jev-droid` or the serving runtime. Launching a decision service is an explicit prerequisite; the browser does not silently start models.
 
-Spaceship already has two input contracts: `TextSource` for abortable generation, and scored decision sources for attention, relevance, influence, and realization. Keep both contracts; route them through a single provider boundary in `src/llm/inference.ts`.
+## Architecture
 
-Two designs were compared:
+| Module                  | Responsibility                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------ |
+| `src/llm/local.ts`      | Validate and persist separate local endpoints and model choices; discover models; stream writing |
+| `src/llm/systemone.ts`  | Native decision requests, response validation, and capability probe                              |
+| `src/llm/transport.ts`  | Shared HTTP/SSE and loopback access                                                              |
+| `src/llm/inference.ts`  | Dispatch cloud versus local operations                                                           |
+| `src/text/live-mode.ts` | Mode selection and model configuration                                                           |
 
-- **Duplicate all live sources for local inference.** Rejected. This copies prompts, controls, and behavior across multiple implementations.
-- **Keep the source contracts and switch at inference.** Chosen. Each source retains its existing API; one module selects local or cloud implementations.
+**Writer** uses `POST {writingEndpoint}/chat/completions` with streamed text. **Decision model** uses the native `POST {decisionEndpoint}/systemone` contract:
 
-Ownership:
+```json
+{
+  "model": "SELECTED_NATIVE_MODEL",
+  "state": "A lantern glows in a library.",
+  "questions": {
+    "present": { "type": "noul", "instructions": "Is there a lantern?" },
+    "setting": { "type": "choice", "instructions": "Where is it?", "criteria": { "library": "Library", "garden": "Garden" } },
+    "tension": { "type": "score", "instructions": "How tense is it?", "criteria": ["Calm", "Tense", "Intense"] }
+  }
+}
+```
 
-| Module                  | Responsibility                                                |
-| ----------------------- | ------------------------------------------------------------- |
-| `src/llm/mode.ts`       | SIM/CLOUD/LOCAL URL state                                     |
-| `src/llm/inference.ts`  | Provider dispatch                                             |
-| `src/llm/local.ts`      | Loopback settings, discovery, generation, decision conversion |
-| `src/llm/openai.ts`     | Shared OpenAI-compatible JSON/SSE transport                   |
-| `src/text/live-mode.ts` | User-selected endpoint and models                             |
+The adapter preserves native probabilities, fractional score, legend, and confidence. `noul` has a probability without a separate confidence field. It rejects incorrect or incomplete typed responses and never falls back to chat-based JSON scoring.
 
-## Local decision contract
+**Model selection:** Writer and decision endpoints can be different servers. Their `/v1/models` catalogs can use OpenAI's `data[].id` or System One's `models[].name`. Native capability is established by a real probe, not inferred from a model name or catalog entry. Previously saved chat-scoring selections must be reconfigured.
 
-The decision model receives an existing `DecisionRequest` as a JSON-only prompt. For `score` questions it must return an integer level index; for `noul` it must return a number in [0,1]; for `choice` it must return an option key. The local adapter validates each answer before returning the corresponding existing decision result.
+**Browser:** Both endpoints must be reachable from the browser and permit its origin through CORS. Public HTTPS origins may require Chromium's Loopback network permission. Local endpoints are restricted to the loopback interface to avoid sending writing or decision input to remote services.
 
-It does not claim to provide the token-probability distributions exposed by the Gemini Decisions API. Its confidence fields are placeholders for the app's existing result type; decision-model scoring quality depends on the selected local model and should be evaluated on real output.
-
-## Supported services
-
-- LM Studio: `http://127.0.0.1:1234/v1`
-- Ollama: `http://127.0.0.1:11434/v1`
-- llama.cpp server: `http://127.0.0.1:8080/v1`
-
-Both models can use the same server. OpenAI-compatible local requests use reasoning_effort=none because the installed Qwen3.5 model otherwise spent its entire small response budget on reasoning without producing visible content. The browser must reach its own loopback endpoint. If using WSL, confirm that the model server is reachable from the browser OS. Cloud mode continues using the original API keys, while local mode requires no cloud keys.
-
-The endpoint must permit the app origin via CORS. Chromium may ask for **Loopback network** access from a public HTTPS page; localhost-based development does not cross into a more private address space.
+**Caveat:** Native probability availability is verified, but model calibration and task-level decision quality require separate evaluation. The existing Gemini Decisions cloud route remains unchanged.
 
 ## Verification
 
-- `npm run build`: TypeScript and production bundle.
-- `node scripts/verify-local.mjs`: real Chromium and loopback HTTP fixture for discovery, generation streaming, scoring, and mode switching.
-- Real-model check: verify model listing plus streamed and JSON-mode requests directly against the selected installed model.
-- `git diff --check`: whitespace and patch validity.
+- `npm run build` checks TypeScript and bundles the app.
+- `node scripts/verify-local.mjs` runs Chromium against two kinds of local API contracts: streamed writing and native typed decisions. It tests real HTTP requests, preserved fractional scores/distributions, a mixed-question launch probe, and fail-closed behavior.
+- A real Laya Q8 native runtime served `/v1/systemone` with `noul`, `choice`, and fractional `score` results in one request. Browser-origin CORS was present, and its port closed after the managed serving process exited.
 
-## Decision trail
+## Decision
 
-| Gate             | Evidence                                             | Result                  |
-| ---------------- | ---------------------------------------------------- | ----------------------- |
-| Source contracts | `src/text/text-stream.ts`, `src/llm/decisions.ts`    | Reusable                |
-| Model servers    | LM Studio :1234, Ollama :11434 `/v1/models` and CORS | Reachable               |
-| UI reuse         | One route selector and shared live-source set        | Build verified          |
-| Behavior         | Browser smoke and installed-model requests           | See current test output |
+Duplicating the live steering sources or using chat completion for typed decisions would conflate generation with inference. The selected design keeps the existing UI source contracts and gives native decision inference its own endpoint and validation boundary.
+
+**Sources:** [System One API](https://docs.system-one.dev/en/docs/api), locally installed `jev-droid` System One profile, and the repository's verified `src/llm/decisions.ts` contracts.

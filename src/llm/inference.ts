@@ -1,6 +1,7 @@
 import { storedApiKey, streamCompletion, type CompletionRequest } from "./cerebras.ts"
 import { createDecisions, storedGeminiKey, type DecisionRequest } from "./decisions.ts"
-import { localDecisions, streamLocalText } from "./local.ts"
+import { streamLocalText } from "./local.ts"
+import { localDecisions } from "./systemone.ts"
 import { currentMode } from "./mode.ts"
 
 export async function* streamText(request: Omit<CompletionRequest, "apiKey">) {

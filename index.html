@@ -902,20 +902,26 @@
     <dialog id="live-keys" aria-labelledby="live-keys-title" aria-describedby="live-keys-note" closedby="closerequest">
       <form method="dialog" autocomplete="off">
         <h2 id="live-keys-title">launch</h2>
-        <p id="live-keys-note">Select a local model server or cloud provider. Local settings stay in this browser.</p>
+        <p id="live-keys-note">Local mode needs a writing model and a native System One decision model. Settings stay in this browser.</p>
         <fieldset class="providers">
+          <legend>provider</legend>
           <label><input type="radio" name="provider" value="local" checked /> local</label>
           <label><input type="radio" name="provider" value="cloud" /> cloud</label>
         </fieldset>
         <fieldset data-provider="local">
+          <legend>writing model</legend>
           <label>endpoint <input name="endpoint" type="url" required spellcheck="false" autocomplete="off" /></label>
           <label>writer <input name="writer" type="text" list="local-models" required spellcheck="false" autocomplete="off" /></label>
-          <label>decision <input name="decision" type="text" list="local-models" required spellcheck="false" autocomplete="off" /></label>
           <datalist id="local-models"></datalist>
-          <button type="button" id="discover-models">detect models</button>
+          <button type="button" id="discover-models">detect writing models</button>
+          <label>dec url <input name="decisionEndpoint" type="url" required spellcheck="false" autocomplete="off" /></label>
+          <label>decision <input name="decision" type="text" list="decision-models" required spellcheck="false" autocomplete="off" /></label>
+          <datalist id="decision-models"></datalist>
+          <button type="button" id="discover-decisions">detect decision models</button>
           <output id="connection-status" role="status" aria-live="polite"></output>
         </fieldset>
         <fieldset data-provider="cloud" hidden disabled>
+          <legend>cloud APIs</legend>
           <label
             >cerebras
             <input

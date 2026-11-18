@@ -1,4 +1,4 @@
-import { streamChat } from "./openai.ts"
+import { streamChat } from "./transport.ts"
 
 const API_URL = "https://api.cerebras.ai/v1/chat/completions"
 const MODEL = "gpt-oss-120b"

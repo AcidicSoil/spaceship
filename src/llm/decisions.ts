@@ -18,7 +18,7 @@ export type Question =
   | { type: "score"; instructions: string; criteria: string[] }
 
 export type Answer =
-  | { type: "noul"; noul: number; confidence: number }
+  | { type: "noul"; noul: number; confidence?: number }
   | { type: "choice"; choice: string; probabilities: Record<string, number>; confidence: number }
   | { type: "score"; score: number; probabilities: Record<string, number>; legend: Record<string, string>; confidence: number }
 
