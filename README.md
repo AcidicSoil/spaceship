@@ -55,17 +55,6 @@ If you build on this work, please cite it as:
 }
 ```
 
-## Local writing and decision models
+## Local inference
 
-Run the app using `npm ci && npm run dev`. In **mode → local**, configure two independent backends:
-
-- **Writing:** an OpenAI-compatible stream endpoint, such as Ollama at `http://127.0.0.1:11434/v1`.
-- **Decisions:** a native System One endpoint implementing `POST /v1/systemone`. Run `jev-droid models` to discover installed decision profiles and their configured addresses, then `jev-droid --model default serve` to launch the local Laya decision model under managed idle unloading.
-
-Use each **detect** control to select a model, then **launch**. Spaceship probes `noul`, `choice`, and `score` natively before starting. Probabilities, confidence, and fractional scores come from the decision model itself; there is no chat-based JSON scoring fallback.
-
-The model servers must be reachable from the browser, with CORS permitting its origin. A public HTTPS page may also need browser **Loopback network** permission.
-
-See [local decision-model architecture and verification](docs/local-inference.md).
-
-Verify with `npm run build` and `node scripts/verify-local.mjs` (Chromium + loopback HTTP fixture). With a native System One server running, set `SPACESHIP_NATIVE_ENDPOINT=http://127.0.0.1:8774/v1` to run the optional real-model browser check. Use your configured endpoint from `jev-droid models` rather than assuming this example port.
+For writing and native decision-model configuration, see [local inference](docs/local-inference.md).
