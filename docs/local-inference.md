@@ -9,10 +9,18 @@ Spaceship's **LOCAL** mode accepts two independent loopback endpoints. The appli
 
 ## Configure
 
-1. Start compatible writing and decision servers using their own documentation.
+1. Start compatible writing and decision servers independently.
 2. Run `npm ci && npm run dev` and select **mode → local**.
 3. Enter each server's `/v1` base URL and model ID. **Detect** lists models at each endpoint.
 4. Select **launch**. Spaceship probes the decision server with all three question types and refuses unsupported responses.
+
+For example, start a native System One decision model **directly** with a System One-capable `llama-server`:
+
+```sh
+llama-server --model /path/to/decision-model.gguf --host 127.0.0.1 --port 8080 --no-webui
+```
+
+Set the decision endpoint to `http://127.0.0.1:8080/v1` and select the model with **Detect**. The writing endpoint can be a separate OpenAI-compatible server. Spaceship does not require a model-manager wrapper.
 
 Endpoints must be reachable from the browser through loopback (for example, `http://127.0.0.1:<port>/v1`). The servers must permit the browser origin through CORS. A hosted HTTPS page may require browser **Loopback network** permission.
 
