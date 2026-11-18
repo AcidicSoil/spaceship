@@ -1,6 +1,8 @@
 # Local inference
 
-Spaceship's **LOCAL** mode accepts two independent loopback endpoints. The application connects to running services; each service is started and managed externally.
+Spaceship's **LOCAL** mode uses two independent loopback endpoints. In development, `npm run dev` starts the configured writing and decision servers, reuses an already-running compatible server, and stops only processes it started when the app exits.
+
+Copy `spaceship.config.example.json` to `spaceship.config.json` and edit the writing model, decision model, endpoint URLs, and server commands. The actual config is Git-ignored, so local model paths stay on your machine. The `{model}` argument placeholder resolves to the configured model ID.
 
 | Role      | Required API                                                 | Model selection                                                        |
 | --------- | ------------------------------------------------------------ | ---------------------------------------------------------------------- |
@@ -9,18 +11,11 @@ Spaceship's **LOCAL** mode accepts two independent loopback endpoints. The appli
 
 ## Configure
 
-1. Start compatible writing and decision servers independently.
-2. Run `npm ci && npm run dev` and select **mode → local**.
-3. Enter each server's `/v1` base URL and model ID. **Detect** lists models at each endpoint.
-4. Select **launch**. Spaceship probes the decision server with all three question types and refuses unsupported responses.
+1. Configure both servers in `spaceship.config.json`. For a native System One decision model, use a compatible `llama-server` command; for writing, use any OpenAI-compatible backend.
+2. Run `npm ci` once, then `npm run dev` to launch the servers and the app.
+3. Open the Vite URL. LOCAL mode activates automatically from the config. Use the **mode** control to switch to SIM or cloud.
 
-For example, start a native System One decision model **directly** with a System One-capable `llama-server`:
-
-```sh
-llama-server --model /path/to/decision-model.gguf --host 127.0.0.1 --port 8080 --no-webui
-```
-
-Set the decision endpoint to `http://127.0.0.1:8080/v1` and select the model with **Detect**. The writing endpoint can be a separate OpenAI-compatible server. Spaceship does not require a model-manager wrapper.
+The app verifies that each configured server exposes its model through `/v1/models` before starting Vite. The local launch dialog displays file-managed settings as read-only; edit the JSON and restart `npm run dev` to change them. Without a config file, the simulator and manual local/cloud setup remain available.
 
 Endpoints must be reachable from the browser through loopback (for example, `http://127.0.0.1:<port>/v1`). The servers must permit the browser origin through CORS. A hosted HTTPS page may require browser **Loopback network** permission.
 
@@ -30,6 +25,7 @@ Writing and decision inference remain separate. The decision adapter preserves n
 
 ```sh
 npm run build
+node scripts/verify-dev-start.mjs
 node scripts/verify-local.mjs
 ```
 

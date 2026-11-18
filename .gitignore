@@ -25,6 +25,7 @@ dist-ssr
 
 
 .env
+spaceship.config.json
 
 # written by scripts/cerebras-dev.mjs
 token-usage.log

@@ -68,6 +68,7 @@ await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve))
 const endpoint = `http://127.0.0.1:${server.address().port}/v1`
 const vite = spawn(process.execPath, ["node_modules/vite/bin/vite.js", "--host", "127.0.0.1", "--port", String(PORT), "--strictPort"], {
   stdio: "pipe",
+  env: { ...process.env, SPACESHIP_CONFIG: "" },
 })
 let browser
 try {

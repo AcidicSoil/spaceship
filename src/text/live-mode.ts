@@ -1,6 +1,6 @@
 import { KEY_STORAGE as CEREBRAS_KEY_STORAGE } from "../llm/cerebras.ts"
 import { KEY_STORAGE as GEMINI_KEY_STORAGE } from "../llm/decisions.ts"
-import { createLocalSettings, DEFAULT_LOCAL_ENDPOINT, listLocalModels, saveLocalSettings, storedLocalSettings } from "../llm/local.ts"
+import { configuredLocalSettings, createLocalSettings, DEFAULT_LOCAL_ENDPOINT, listLocalModels, saveLocalSettings, storedLocalSettings } from "../llm/local.ts"
 import { probeSystemOne } from "../llm/systemone.ts"
 import type { InferenceMode } from "../llm/mode.ts"
 
@@ -28,7 +28,7 @@ export function bindModeToggle(toggle: HTMLButtonElement, dialog: HTMLDialogElem
     inputOf("writer").value = settings?.writer ?? ""
     inputOf("decision").value = settings?.decision ?? ""
     inputOf("decisionEndpoint").value = settings?.decisionEndpoint ?? ""
-    status.textContent = ""
+    for (const field of ["endpoint", "writer", "decisionEndpoint", "decision"]) inputOf(field).readOnly = !!configuredLocalSettings
     selectProvider()
     dialog.showModal()
   })
@@ -67,7 +67,7 @@ export function bindModeToggle(toggle: HTMLButtonElement, dialog: HTMLDialogElem
     localFields.disabled = !isLocal
     cloudFields.hidden = isLocal
     cloudFields.disabled = isLocal
-    status.textContent = ""
+    status.textContent = isLocal && configuredLocalSettings ? "Models configured in spaceship.config.json. Restart the dev server after edits." : ""
   }
 
   async function discoverModels(endpointName: "endpoint" | "decisionEndpoint", list: HTMLDataListElement) {
@@ -84,7 +84,7 @@ export function bindModeToggle(toggle: HTMLButtonElement, dialog: HTMLDialogElem
 
 function reloadAs(mode: InferenceMode) {
   const url = new URL(location.href)
-  if (mode === "sim") url.searchParams.delete("live")
-  else url.searchParams.set("live", mode === "cloud" ? "true" : "local")
+  if (mode === "sim" && !configuredLocalSettings) url.searchParams.delete("live")
+  else url.searchParams.set("live", mode === "sim" ? "sim" : mode === "cloud" ? "true" : "local")
   location.assign(url)
 }

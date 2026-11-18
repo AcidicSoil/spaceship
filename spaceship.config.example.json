@@ -1,0 +1,14 @@
+{
+  "writer": {
+    "endpoint": "http://127.0.0.1:11434/v1",
+    "model": "qwen3.5:4b",
+    "command": "ollama",
+    "args": ["serve"]
+  },
+  "decision": {
+    "endpoint": "http://127.0.0.1:8080/v1",
+    "model": "spaceship-decision",
+    "command": "llama-server",
+    "args": ["--model", "/path/to/decision-model.gguf", "--alias", "{model}", "--host", "127.0.0.1", "--port", "8080", "--no-webui"]
+  }
+}

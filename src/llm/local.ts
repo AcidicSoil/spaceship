@@ -11,6 +11,9 @@ export type LocalSettings = {
   decision: string
 }
 
+declare const __SPACESHIP_CONFIG__: LocalSettings | undefined
+export const configuredLocalSettings = typeof __SPACESHIP_CONFIG__ === "undefined" ? undefined : __SPACESHIP_CONFIG__
+
 export function normalizeLocalEndpoint(value: string) {
   const url = new URL(value.trim())
   const pathname = url.pathname.replace(/\/+$/, "")
@@ -40,10 +43,11 @@ export function createLocalSettings({ endpoint, writer, decisionEndpoint, decisi
 }
 
 export function saveLocalSettings(settings: LocalSettings) {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
+  if (!configuredLocalSettings) localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
 }
 
 export function storedLocalSettings() {
+  if (configuredLocalSettings) return createLocalSettings(configuredLocalSettings)
   const raw = localStorage.getItem(SETTINGS_KEY)
   if (!raw) return undefined
   const saved: unknown = JSON.parse(raw)
